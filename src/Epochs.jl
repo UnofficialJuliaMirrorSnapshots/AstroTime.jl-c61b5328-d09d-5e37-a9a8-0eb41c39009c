@@ -99,7 +99,7 @@ function Epoch{S}(epoch::Int64, offset, ts_offset, Δt) where S
 end
 
 """
-    Epoch{S}(jd1::T, jd2::T=zero(T); origin=:j2000) where {S, T}
+    Epoch{S}(jd1::T, jd2::T=zero(T); origin=:j2000) where {S, T<:Period}
 
 Construct an `Epoch` with time scale `S` from a Julian date
 (optionally split into `jd1` and `jd2`). `origin` determines the
@@ -112,14 +112,16 @@ variant of Julian date that is used. Possible values are:
 ### Examples ###
 
 ```jldoctest
-julia> Epoch{UTC}(0.0, 0.5)
+julia> Epoch{UTC}(0.0days, 0.5days)
 2000-01-02T00:00:00.000 UTC
 
-julia> Epoch{UTC}(2.451545e6, origin=:julian)
+julia> Epoch{UTC}(2.451545e6days, origin=:julian)
 2000-01-01T12:00:00.000 UTC
 ```
 """
-function Epoch{S}(jd1::T, jd2::T=zero(T), args...; origin=:j2000) where {S, T<:Number}
+function Epoch{S}(jd1::T, jd2::T=zero(T), args...; origin=:j2000) where {S, T<:Period}
+    jd1 = float(value(days(jd1)))
+    jd2 = float(value(days(jd2)))
     if jd2 > jd1
         jd1, jd2 = jd2, jd1
     end
@@ -141,7 +143,7 @@ function Epoch{S}(jd1::T, jd2::T=zero(T), args...; origin=:j2000) where {S, T<:N
     epoch = floor(Int64, sum)
     offset = (sum - epoch) + residual
 
-    ftype = float(T)
+    ftype = float(eltype(T))
     tai = Epoch{TAI}(epoch, ftype(offset), zero(ftype))
     ts_offset = tai_offset(S, tai, args...)
     ep = Epoch{TAI}(tai, -ts_offset)
@@ -545,7 +547,7 @@ for scale in TimeScales.ACRONYMS
         $epoch(::AbstractString)
 
         """
-            $($name)(jd1::T, jd2::T=zero(T); origin=:j2000) where T
+            $($name)(jd1::T, jd2::T=zero(T); origin=:j2000) where T<:Period
 
         Construct a $($name) from a Julian date (optionally split into
         `jd1` and `jd2`). `origin` determines the variant of Julian
@@ -558,10 +560,10 @@ for scale in TimeScales.ACRONYMS
         ### Examples ###
 
         ```jldoctest
-        julia> $($name)(0.0, 0.5)
+        julia> $($name)(0.0days, 0.5days)
         2000-01-02T00:00:00.000 $($scale)
 
-        julia> $($name)(2.451545e6, origin=:julian)
+        julia> $($name)(2.451545e6days, origin=:julian)
         2000-01-01T12:00:00.000 $($scale)
         ```
         """
